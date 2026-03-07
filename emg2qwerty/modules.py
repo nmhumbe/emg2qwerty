@@ -278,3 +278,51 @@ class TDSConvEncoder(nn.Module):
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
         return self.tds_conv_blocks(inputs)  # (T, N, num_features)
+
+# The LSTM Model: Neha Humbe
+
+class LSTMEncoder(nn.Module):
+    """A bidirectional LSTM encoder for EMG sequence modeling.
+
+    Args:
+        num_features (int): Input feature size (T, N, num_features).
+        hidden_size (int): Number of hidden units per LSTM layer.
+        num_layers (int): Number of stacked LSTM layers.
+        dropout (float): Dropout between LSTM layers.
+        bidirectional (bool): Whether to use bidirectional LSTM.
+    """
+
+    def __init__(
+        self,
+        num_features: int,
+        hidden_size: int = 384,
+        num_layers: int = 3,
+        dropout: float = 0.3,
+        bidirectional: bool = True,
+    ) -> None:
+        super().__init__()
+        self.hidden_size = hidden_size
+        self.bidirectional = bidirectional
+
+        self.lstm = nn.LSTM(
+            input_size=num_features,
+            hidden_size=hidden_size,
+            num_layers=num_layers,
+            batch_first=False,   # input is (T, N, features)
+            dropout=dropout if num_layers > 1 else 0.0,
+            bidirectional=bidirectional,
+        )
+
+        # Project back to num_features so output shape matches input
+        lstm_output_size = hidden_size * 2 if bidirectional else hidden_size
+        self.projection = nn.Linear(lstm_output_size, num_features)
+        self.layer_norm = nn.LayerNorm(num_features)
+
+    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+        # inputs: (T, N, num_features)
+        x, _ = self.lstm(inputs)
+        # x: (T, N, hidden_size * num_directions)
+        x = self.projection(x)
+        # residual connection + layer norm
+        x = self.layer_norm(x + inputs)
+        return x  # (T, N, num_features)
