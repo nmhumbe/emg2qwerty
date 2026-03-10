@@ -243,3 +243,41 @@ class SpecAugment:
 
         # (..., C, freq, T) -> (T, ..., C, freq)
         return x.movedim(-1, 0)
+    
+
+#NEW for data augementation
+
+@dataclass
+class GaussianNoise:
+    """Adds random Gaussian noise to the input spectrogram to simulate
+    electrode noise and improve model robustness.
+
+    Args:
+        std (float): Standard deviation of the Gaussian noise. (default: 0.1)
+    """
+
+    std: float = 0.1
+
+    def __call__(self, x: torch.Tensor) -> torch.Tensor:
+        noise = torch.randn_like(x) * self.std
+        return x + noise
+
+
+@dataclass
+class ChannelDropout:
+    """Randomly zeros out entire electrode channels during training to
+    simulate bad electrode contact and improve model robustness.
+
+    Args:
+        p (float): Probability of dropping each channel. (default: 0.1)
+    """
+
+    p: float = 0.1
+
+    def __call__(self, x: torch.Tensor) -> torch.Tensor:
+        # x shape: (T, bands, channels, freq)
+        # Create a mask over the channel dimension
+        mask = torch.bernoulli(
+            torch.ones(x.shape[-2]) * (1 - self.p)
+        )
+        return x * mask.unsqueeze(-1)
