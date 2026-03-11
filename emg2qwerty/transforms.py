@@ -281,3 +281,17 @@ class ChannelDropout:
             torch.ones(x.shape[-2]) * (1 - self.p)
         )
         return x * mask.unsqueeze(-1)
+    
+# NEW to test channel droput 
+@dataclass
+class ChannelSubset:
+    """Keeps only the first n_channels electrode channels per band.
+
+    Args:
+        n_channels (int): Number of channels to keep. (default: 16)
+    """
+    n_channels: int = 16
+
+    def __call__(self, x: torch.Tensor) -> torch.Tensor:
+        # x shape: (T, bands, channels, freq)
+        return x[..., :self.n_channels, :]

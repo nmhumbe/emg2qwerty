@@ -286,9 +286,11 @@ class LSTMCTCModule(pl.LightningModule):
         optimizer: DictConfig,
         lr_scheduler: DictConfig,
         decoder: DictConfig,
+        electrode_channels: int = 16,   # added this
     ) -> None:
         super().__init__()
         self.save_hyperparameters()
+        self.ELECTRODE_CHANNELS = electrode_channels  # added this
 
         num_features = self.NUM_BANDS * mlp_features[-1]
 
